@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Edmonds-Karp-algorithm", "Edmonds-Karp-algorithm\Edmonds-Karp-algorithm.csproj", "{CE924000-06C9-42FE-93A0-6C698F55A55A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE924000-06C9-42FE-93A0-6C698F55A55A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE924000-06C9-42FE-93A0-6C698F55A55A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE924000-06C9-42FE-93A0-6C698F55A55A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE924000-06C9-42FE-93A0-6C698F55A55A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
