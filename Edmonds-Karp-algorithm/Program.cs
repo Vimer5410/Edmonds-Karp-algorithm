@@ -1,3 +1,5 @@
+using Edmonds_Karp_algorithm.Controllers;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -25,5 +27,22 @@ app.MapControllerRoute(
         pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+int[,] capacity = {
+    { 0, 16, 13,  0,  0,  0 }, // узел 0 
+    { 0,  0, 10, 12,  0,  0 }, // узел 1
+    { 0,  0,  0,  0, 14,  0 }, // узел 2
+    { 0,  0,  9,  0,  0, 20 }, // узел 3
+    { 0,  0,  0,  7,  0,  4 }, // узел 4
+    { 0,  0,  0,  0,  0,  0 }  // узел 5 
+};
+
+
+var solver = new EdmondsKarpCore(capacity);
+
+int result = solver.Calculate(0, 5);
+
+Console.WriteLine("======================================");
+Console.WriteLine($"Максимальный поток в системе: {result}, Путь: {solver.GetPath()}");
+Console.WriteLine("======================================");
 
 app.Run();
