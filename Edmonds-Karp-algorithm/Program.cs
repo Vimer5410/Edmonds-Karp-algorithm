@@ -41,8 +41,6 @@ var solver = new EdmondsKarpCore(capacity);
 
 int result = solver.Calculate(0, 5);
 
-Console.WriteLine("======================================");
-Console.WriteLine($"Максимальный поток в системе: {result}, Путь: {solver.GetPath()}");
-Console.WriteLine("======================================");
+
 
 app.Run();

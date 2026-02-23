@@ -340,7 +340,7 @@
             }
         }
 
-        function generateJSON() {
+        async function generateJSON() {
             let nodes = cy.nodes();
             if (nodes.length < 2) return alert("CRITICAL_ERROR: INSUFFICIENT DATA NODES");
 
@@ -357,15 +357,36 @@
                     capacity: e.data('capacity')
                 }))
             };
+            const jsonData = JSON.stringify(data, null, 4);
 
             document.getElementById('jsonOutput').value = JSON.stringify(data, null, 4);
             document.getElementById('jsonModal').style.display = 'flex';
+            
+            try {
+                    const response = await fetch('/api/Flow/Calculate', { // Путь к твоему контроллеру
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: jsonData // Отправляем строку
+                    });
+            
+                    if (response.ok) {
+                        const result = await response.json();
+                        alert("SUCCESS! Max Flow: " + result.maxFlow);
+                        console.log("Server Response:", result);
+                    } else {
+                        alert("SERVER_ERROR: Status " + response.status);
+                    }
+                } catch (err) {
+                    console.error("Uplink failed:", err);
         }
 
         
         window.addEventListener('resize', function() {
             cy.resize();
         });
+}
     </script>
 </body>
 </html>
