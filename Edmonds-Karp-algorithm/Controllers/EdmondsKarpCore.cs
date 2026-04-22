@@ -1,57 +1,54 @@
-﻿using System.Runtime.Intrinsics;
-
+using System.Runtime.Intrinsics;
 namespace Edmonds_Karp_algorithm.Controllers;
-
 public class EdmondsKarpCore
 {
     private int[,] _matrix;
     private int _nodeCount;
     private int _maxFlow;
     private string _path;
+    
+    private List<string> _paths = new List<string>();
 
     public EdmondsKarpCore(int[,] inputMatrix)
     {
         _matrix = inputMatrix;
-        _nodeCount = inputMatrix.GetLength(0); // кол-во вершин
+        _nodeCount = inputMatrix.GetLength(0); //кол-во вершин
     }
-
-
     public int Calculate(int source, int sink)
     {
-        
-        
         int[] parents = new int[_nodeCount];
         while (BFS(source, sink, parents))
         {
-            // ищем максимально возможный поток среди родителей(проматывая граф назад)
-            int pathFlow =Int32.MaxValue;
-            for (int v2 = sink; v2 !=source; v2=parents[v2])
+            //ищем максимально возможный поток среди родителей(проматывая граф назад)
+            int pathFlow = Int32.MaxValue;
+            for (int v2 = sink; v2 != source; v2 = parents[v2])
             {
-                // где v1 и v2 - ноды графа, v1 --> родительский
+                //где v1 и v2 - ноды графа, v1 --> родительский
                 int v1 = parents[v2];
                 pathFlow = Math.Min(pathFlow, _matrix[v1, v2]);
-                
             }
 
-            for (int v2 = sink; v2 !=source; v2=parents[v2])
+            //собираем путь в список нод
+            var pathNodes = new List<int>();
+            for (int v2 = sink; v2 != source; v2 = parents[v2])
             {
                 int v1 = parents[v2];
                 _matrix[v1, v2] -= pathFlow;
                 _matrix[v2, v1] += pathFlow;
                 _path += v1;
+                pathNodes.Add(v2);
             }
+            pathNodes.Add(source);
+            pathNodes.Reverse();
+            _paths.Add(string.Join(" → ", pathNodes));
 
             _maxFlow += pathFlow;
         }
         return _maxFlow;
-        
     }
-
     public string GetPath()
     {
-        string newPath = new string(_path.Reverse().ToArray());
-        return newPath;
-
+        return string.Join("\n", _paths);
     }
     private bool BFS(int source, int sink, int[] parents)
     {
@@ -59,28 +56,24 @@ public class EdmondsKarpCore
         Queue<int> queue = new Queue<int>();
         
         queue.Enqueue(source);
-        visited[source] = true;               // три базовейших операции над новой нодой
+        visited[source] = true;               //три базовейших операции над новой нодой
         parents[source] = -1;
-
-        while (queue.Count>0)
+        while (queue.Count > 0)
         {
             var node = queue.Dequeue();
-
             for (int v = 0; v < _nodeCount; v++)
             {
-                if (!visited[v]&& _matrix[node, v]>0)
+                if (!visited[v] && _matrix[node, v] > 0)
                 {
                     visited[v] = true;
                     parents[v] = node;
-                    if (v==sink )
+                    if (v == sink)
                     {
                         Console.WriteLine("Путь найден");
-                        _path += "\n" + 5;
+                        
                         return true;
                     }
-                    
                     queue.Enqueue(v);
-                    
                 }
             }
         }

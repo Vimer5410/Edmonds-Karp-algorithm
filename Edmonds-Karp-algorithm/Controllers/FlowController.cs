@@ -16,6 +16,9 @@ public class FlowController:ControllerBase
         }
 
         var core = new EdmondsKarpCore(matrix);
-        return Ok(new{MaxFlow=core.Calculate(request.source, request.sink)});
+        var MaxFlow = core.Calculate(request.source, request.sink);
+        
+        var path = core.GetPath();
+        return Ok(new{MaxFlow, path});
     }
 }

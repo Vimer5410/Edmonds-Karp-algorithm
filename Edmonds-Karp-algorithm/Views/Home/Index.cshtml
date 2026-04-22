@@ -1,8 +1,1126 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    Layout = null;
+    ViewData["Title"] = "Алгоритм Эдмондса–Карпа";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Алгоритм Эдмондса–Карпа</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --surface-2: #f0efe9;
+            --border: #dddbd3;
+            --border-strong: #c4c1b6;
+            --text: #1a1917;
+            --text-2: #6b6860;
+            --text-3: #9c9a94;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-bg: #eff6ff;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --green: #16a34a;
+            --green-bg: #f0fdf4;
+            --node-default: #ffffff;
+            --node-border: #c4c1b6;
+            --node-source: #16a34a;
+            --node-sink: #dc2626;
+            --node-selected: #2563eb;
+            --edge: #c4c1b6;
+            --edge-label: #6b6860;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+        }
+
+        /* ── Layout ───────────────────────────────── */
+        .layout {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* ── Sidebar ──────────────────────────────── */
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 2px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .sidebar-body {
+            padding: 16px 20px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Sections ─────────────────────────────── */
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-3);
+            margin-bottom: 10px;
+        }
+
+        /* ── Buttons ──────────────────────────────── */
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.12s ease;
+            text-align: left;
+        }
+
+        .btn:hover {
+            background: var(--surface-2);
+            border-color: var(--border-strong);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            justify-content: center;
+            padding: 10px 12px;
+            font-size: 13.5px;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            color: var(--red);
+            border-color: var(--border);
+        }
+
+        .btn-danger:hover {
+            background: var(--red-bg);
+            border-color: #fca5a5;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* ── Legend ───────────────────────────────── */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid currentColor;
+        }
+
+        .legend-dot.source { color: var(--green); background: var(--green-bg); }
+        .legend-dot.sink   { color: var(--red);   background: var(--red-bg); }
+        .legend-dot.node   { color: var(--node-border); background: var(--node-default); }
+
+        /* ── Instructions ─────────────────────────── */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .step {
+            display: flex;
+            gap: 9px;
+            align-items: flex-start;
+            font-size: 12px;
+            color: var(--text-2);
+            line-height: 1.45;
+        }
+
+        .step-num {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* ── Result box ───────────────────────────── */
+        .result-box {
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            padding: 12px 14px;
+            display: none;
+        }
+
+        .result-box.visible { display: block; }
+
+        .result-box.success {
+            background: var(--green-bg);
+            border-color: #86efac;
+        }
+
+        .result-box.error {
+            background: var(--red-bg);
+            border-color: #fca5a5;
+        }
+
+        .result-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-3);
+            margin-bottom: 4px;
+        }
+
+        .result-box.success .result-label { color: var(--green); }
+        .result-box.error .result-label   { color: var(--red); }
+
+        .result-value {
+            font-size: 26px;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text);
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .result-box.success .result-value { color: var(--green); }
+        .result-box.error .result-value   { color: var(--red); font-size: 13px; font-weight: 500; margin-top: 2px; }
+
+        .result-sub {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 3px;
+        }
+
+        .result-paths {
+            margin-top: 10px;
+            border-top: 1px solid #86efac;
+            padding-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .result-paths-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--green);
+            margin-bottom: 2px;
+        }
+
+        .path-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .path-node {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            background: white;
+            border: 1px solid #86efac;
+            border-radius: 4px;
+            padding: 1px 7px;
+            color: var(--text);
+        }
+
+        .path-arrow {
+            font-size: 11px;
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .result-path {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #86efac;
+        }
+
+        .result-path-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--green);
+            margin-bottom: 6px;
+        }
+
+        .path-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .path-step {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .path-step-num {
+            font-size: 10px;
+            color: var(--text-3);
+            width: 14px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .path-nodes {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .path-node {
+            background: white;
+            border: 1px solid #86efac;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--green);
+        }
+
+        .path-arrow {
+            color: var(--text-3);
+            font-size: 10px;
+        }
+
+        /* ── Stats ────────────────────────────────── */
+        .stats {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stat {
+            flex: 1;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-3);
+            margin-top: 1px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Canvas area ──────────────────────────── */
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        /* subtle dot grid */
+        .canvas-area::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(circle, #c4c1b6 1px, transparent 1px);
+            background-size: 28px 28px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #cy {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* ── Empty state ──────────────────────────── */
+        .empty-hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            pointer-events: none;
+            z-index: 2;
+            transition: opacity 0.2s;
+        }
+
+        .empty-hint.hidden { opacity: 0; }
+
+        .empty-hint-icon {
+            width: 40px;
+            height: 40px;
+            color: var(--border-strong);
+        }
+
+        .empty-hint-text {
+            font-size: 13px;
+            color: var(--text-3);
+            text-align: center;
+        }
+
+        /* ── Capacity modal ───────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(26, 25, 23, 0.35);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            width: 300px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .modal-sub {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-bottom: 16px;
+        }
+
+        .modal-edge-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text-2);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 7px 10px;
+            margin-bottom: 14px;
+        }
+
+        .modal-arrow {
+            color: var(--text-3);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            color: var(--text);
+            background: var(--surface);
+            outline: none;
+            transition: border-color 0.12s;
+            margin-bottom: 14px;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* ── Toast ────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: var(--text);
+            color: white;
+            padding: 9px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            z-index: 200;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── Loading spinner ──────────────────────── */
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: none;
+        }
+
+        .btn-primary.loading .spinner { display: block; }
+        .btn-primary.loading .btn-label { display: none; }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- ─── Sidebar ─────────────────────────────── -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">Эдмондс–Карп</div>
+            <div class="sidebar-subtitle">max flow / min cut</div>
+        </div>
+
+        <div class="sidebar-body">
+
+            <!-- Stats -->
+            <div>
+                <div class="section-label">Граф</div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="statNodes">0</div>
+                        <div class="stat-label">Вершин</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="statEdges">0</div>
+                        <div class="stat-label">Рёбер</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div>
+                <div class="section-label">Действия</div>
+                <div class="btn-group">
+                    <button class="btn" onclick="addNode()">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Добавить вершину
+                    </button>
+                    <button class="btn btn-danger" onclick="clearGraph()">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                        Очистить граф
+                    </button>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div>
+                <div class="section-label">Обозначения</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot source"></div>
+                        Исток (вершина 0)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot sink"></div>
+                        Сток (последняя вершина)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot node"></div>
+                        Промежуточная вершина
+                    </div>
+                </div>
+            </div>
+
+            <!-- How to -->
+            <div>
+                <div class="section-label">Как пользоваться</div>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-num">1</div>
+                        <span>Добавьте вершины кнопкой выше</span>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">2</div>
+                        <span>Кликните на вершину, затем на другую — появится запрос пропускной способности</span>
+                    </div>
+                    <div class="step">
+                        <div class="step-num">3</div>
+                        <span>Нажмите «Вычислить» для запуска алгоритма</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result -->
+            <div id="resultBox" class="result-box">
+                <div class="result-label" id="resultLabel">Максимальный поток</div>
+                <div class="result-value" id="resultValue">—</div>
+                <div class="result-sub" id="resultSub"></div>
+                <div class="result-path" id="resultPath" style="display:none">
+                    <div class="result-path-label">Пути увеличения потока</div>
+                    <div class="path-steps" id="pathSteps"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-primary" id="calcBtn" onclick="calculate()" disabled>
+                <div class="spinner"></div>
+                <span class="btn-label">Вычислить поток</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ─── Canvas ───────────────────────────────── -->
+    <main class="canvas-area">
+
+        <div class="empty-hint" id="emptyHint">
+            <svg class="empty-hint-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
+                <line x1="7" y1="11.5" x2="17" y2="6.5"/><line x1="7" y1="12.5" x2="17" y2="17.5"/>
+            </svg>
+            <div class="empty-hint-text">Добавьте вершины, чтобы начать</div>
+        </div>
+
+        <div id="cy"></div>
+
+    </main>
 </div>
+
+<!-- ─── Edge capacity modal ──────────────────── -->
+<div class="modal-overlay" id="edgeModal">
+    <div class="modal">
+        <div class="modal-title">Пропускная способность</div>
+        <div class="modal-sub">Введите пропускную способность ребра</div>
+        <div class="modal-edge-info">
+            <span id="edgeFrom">0</span>
+            <span class="modal-arrow">→</span>
+            <span id="edgeTo">1</span>
+        </div>
+        <input
+            class="input-field"
+            type="number"
+            id="capacityInput"
+            min="1"
+            placeholder="Например: 10"
+            onkeydown="handleModalKey(event)"
+        >
+        <div class="modal-actions">
+            <button class="btn" onclick="cancelEdge()">Отмена</button>
+            <button class="btn btn-primary" onclick="confirmEdge()" style="flex: 1.5">
+                <span class="btn-label">Добавить ребро</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Toast ────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+    let nodeCounter = 0;
+    let selectedNode = null;
+    let pendingEdge = { from: null, to: null };
+
+    // ── Cytoscape init ──────────────────────────────
+    const cy = cytoscape({
+        container: document.getElementById('cy'),
+        boxSelectionEnabled: false,
+        autounselectify: false,
+        style: [
+            {
+                selector: 'node',
+                style: {
+                    'background-color': '#ffffff',
+                    'border-width': 2,
+                    'border-color': '#c4c1b6',
+                    'label': 'data(id)',
+                    'color': '#1a1917',
+                    'text-valign': 'center',
+                    'text-halign': 'center',
+                    'width': 44,
+                    'height': 44,
+                    'font-family': 'IBM Plex Mono, monospace',
+                    'font-weight': '500',
+                    'font-size': '13px',
+                    'shadow-blur': 4,
+                    'shadow-color': 'rgba(0,0,0,0.08)',
+                    'shadow-offset-x': 0,
+                    'shadow-offset-y': 1,
+                    'shadow-opacity': 1,
+                }
+            },
+            {
+                selector: 'node.selected',
+                style: {
+                    'border-color': '#2563eb',
+                    'border-width': 3,
+                    'background-color': '#eff6ff',
+                    'color': '#2563eb',
+                }
+            },
+            {
+                selector: 'node.source',
+                style: {
+                    'border-color': '#16a34a',
+                    'border-width': 3,
+                    'background-color': '#f0fdf4',
+                    'color': '#15803d',
+                }
+            },
+            {
+                selector: 'node.sink',
+                style: {
+                    'border-color': '#dc2626',
+                    'border-width': 3,
+                    'background-color': '#fef2f2',
+                    'color': '#b91c1c',
+                }
+            },
+            {
+                selector: 'edge',
+                style: {
+                    'width': 1.5,
+                    'line-color': '#c4c1b6',
+                    'target-arrow-shape': 'triangle',
+                    'target-arrow-color': '#c4c1b6',
+                    'curve-style': 'bezier',
+                    'label': 'data(capacity)',
+                    'color': '#6b6860',
+                    'font-size': '11px',
+                    'font-family': 'IBM Plex Mono, monospace',
+                    'font-weight': '500',
+                    'text-background-color': '#f5f4f0',
+                    'text-background-opacity': 1,
+                    'text-background-padding': '3px',
+                    'arrow-scale': 0.8,
+                }
+            }
+        ],
+        layout: { name: 'preset' }
+    });
+
+    // ── Node interaction ────────────────────────────
+    cy.on('tap', 'node', function(evt) {
+        const node = evt.target;
+
+        if (selectedNode === null) {
+            selectedNode = node;
+            node.addClass('selected');
+        } else {
+            if (selectedNode.id() !== node.id()) {
+                openEdgeModal(selectedNode.id(), node.id());
+            }
+            selectedNode.removeClass('selected');
+            selectedNode = null;
+        }
+    });
+
+    cy.on('tap', function(evt) {
+        if (evt.target === cy && selectedNode) {
+            selectedNode.removeClass('selected');
+            selectedNode = null;
+        }
+    });
+
+    // ── Add node ────────────────────────────────────
+    function addNode() {
+        cy.resize();
+        const ext = cy.extent();
+        const cx = ext.x1 + ext.w / 2;
+        const cy_ = ext.y1 + ext.h / 2;
+
+        cy.add({
+            group: 'nodes',
+            data: { id: nodeCounter.toString() },
+            position: {
+                x: cx + (Math.random() * 120 - 60),
+                y: cy_ + (Math.random() * 120 - 60)
+            }
+        });
+
+        nodeCounter++;
+        refreshStyles();
+        updateStats();
+
+        if (cy.nodes().length === 1) {
+            cy.center();
+            cy.fit(undefined, 60);
+        }
+
+        hideEmptyHint();
+        updateCalcBtn();
+    }
+
+    // ── Edge modal ──────────────────────────────────
+    function openEdgeModal(fromId, toId) {
+        pendingEdge = { from: fromId, to: toId };
+        document.getElementById('edgeFrom').textContent = fromId;
+        document.getElementById('edgeTo').textContent = toId;
+        const input = document.getElementById('capacityInput');
+        input.value = '';
+        document.getElementById('edgeModal').classList.add('open');
+        setTimeout(() => input.focus(), 50);
+    }
+
+    function confirmEdge() {
+        const raw = document.getElementById('capacityInput').value.trim();
+        const cap = parseInt(raw);
+
+        if (!raw || isNaN(cap) || cap <= 0) {
+            showToast('Введите положительное целое число');
+            document.getElementById('capacityInput').focus();
+            return;
+        }
+
+        cy.add({
+            group: 'edges',
+            data: {
+                source: pendingEdge.from,
+                target: pendingEdge.to,
+                capacity: cap
+            }
+        });
+
+        closeEdgeModal();
+        updateStats();
+        updateCalcBtn();
+    }
+
+    function cancelEdge() {
+        closeEdgeModal();
+    }
+
+    function closeEdgeModal() {
+        document.getElementById('edgeModal').classList.remove('open');
+        pendingEdge = { from: null, to: null };
+    }
+
+    function handleModalKey(e) {
+        if (e.key === 'Enter') confirmEdge();
+        if (e.key === 'Escape') cancelEdge();
+    }
+
+    // ── Styles ──────────────────────────────────────
+    function refreshStyles() {
+        cy.nodes().removeClass('source sink');
+        const nodes = cy.nodes();
+        if (nodes.length === 0) return;
+
+        nodes.filter(n => n.id() === '0').addClass('source');
+
+        if (nodes.length > 1) {
+            let maxId = -1, lastNode = null;
+            nodes.forEach(n => {
+                const id = parseInt(n.id());
+                if (id > maxId) { maxId = id; lastNode = n; }
+            });
+            if (lastNode && lastNode.id() !== '0') lastNode.addClass('sink');
+        }
+    }
+
+    // ── Clear ───────────────────────────────────────
+    function clearGraph() {
+        if (cy.elements().length === 0) return;
+        if (!confirm('Удалить весь граф?')) return;
+        cy.elements().remove();
+        nodeCounter = 0;
+        selectedNode = null;
+        updateStats();
+        updateCalcBtn();
+        hideResult();
+        showEmptyHint();
+    }
+
+    // ── Calculate ───────────────────────────────────
+    async function calculate() {
+        const nodes = cy.nodes();
+        if (nodes.length < 2) {
+            showToast('Добавьте минимум 2 вершины');
+            return;
+        }
+
+        let maxId = 0;
+        nodes.forEach(n => { maxId = Math.max(maxId, parseInt(n.id())); });
+
+        const data = {
+            source: 0,
+            sink: maxId,
+            nodeCount: nodes.length,
+            edges: cy.edges().map(e => ({
+                from: parseInt(e.data('source')),
+                to: parseInt(e.data('target')),
+                capacity: e.data('capacity')
+            }))
+        };
+
+        const btn = document.getElementById('calcBtn');
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/Flow/Calculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) throw new Error(`Ошибка сервера: ${response.status}`);
+
+            const result = await response.json();
+            showResult(result.maxFlow ?? result.MaxFlow, maxId, result.path ?? result.Path ?? '');
+
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
+    }
+
+    // ── Result display ──────────────────────────────
+    function showResult(value, sinkId, pathRaw) {
+        const box = document.getElementById('resultBox');
+        box.className = 'result-box visible success';
+        document.getElementById('resultLabel').textContent = 'Максимальный поток';
+        document.getElementById('resultValue').textContent = value;
+        document.getElementById('resultSub').textContent = `исток 0 → сток ${sinkId}`;
+
+        const pathBlock = document.getElementById('resultPath');
+        const pathSteps = document.getElementById('pathSteps');
+
+        // Путь из бэкенда: строки вида "0 → 1 → 3\n0 → 2 → 3"
+        // каждая строка — один путь итерации BFS
+        const lines = (pathRaw || '').split('\n').map(s => s.trim()).filter(s => s.length > 0);
+
+        if (lines.length === 0) {
+            pathBlock.style.display = 'none';
+            return;
+        }
+
+        pathSteps.innerHTML = '';
+        lines.forEach((line, i) => {
+            // разбиваем "0 → 1 → 3" на ["0","1","3"]
+            const nodes = line.split('→').map(s => s.trim());
+            const stepEl = document.createElement('div');
+            stepEl.className = 'path-step';
+
+            const numEl = document.createElement('span');
+            numEl.className = 'path-step-num';
+            numEl.textContent = (i + 1) + '.';
+
+            const nodesEl = document.createElement('div');
+            nodesEl.className = 'path-nodes';
+
+            nodes.forEach((n, idx) => {
+                const nodeEl = document.createElement('span');
+                nodeEl.className = 'path-node';
+                nodeEl.textContent = n;
+                nodesEl.appendChild(nodeEl);
+
+                if (idx < nodes.length - 1) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'path-arrow';
+                    arrow.textContent = '→';
+                    nodesEl.appendChild(arrow);
+                }
+            });
+
+            stepEl.appendChild(numEl);
+            stepEl.appendChild(nodesEl);
+            pathSteps.appendChild(stepEl);
+        });
+
+        pathBlock.style.display = 'block';
+    }
+
+    function showError(msg) {
+        const box = document.getElementById('resultBox');
+        box.className = 'result-box visible error';
+        document.getElementById('resultLabel').textContent = 'Ошибка';
+        document.getElementById('resultValue').textContent = msg;
+        document.getElementById('resultSub').textContent = '';
+    }
+
+    function hideResult() {
+        document.getElementById('resultBox').className = 'result-box';
+        document.getElementById('resultPath').style.display = 'none';
+    }
+
+    // ── Helpers ─────────────────────────────────────
+    function updateStats() {
+        document.getElementById('statNodes').textContent = cy.nodes().length;
+        document.getElementById('statEdges').textContent = cy.edges().length;
+    }
+
+    function updateCalcBtn() {
+        const btn = document.getElementById('calcBtn');
+        btn.disabled = cy.nodes().length < 2;
+    }
+
+    function hideEmptyHint() {
+        document.getElementById('emptyHint').classList.add('hidden');
+    }
+
+    function showEmptyHint() {
+        document.getElementById('emptyHint').classList.remove('hidden');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    window.addEventListener('resize', () => cy.resize());
+</script>
+</body>
+</html>
